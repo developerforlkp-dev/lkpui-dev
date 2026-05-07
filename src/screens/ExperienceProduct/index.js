@@ -744,13 +744,15 @@ const ExperienceProduct = () => {
                               <Plus size={24} color={A} />
                             )}
                           </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                <p style={{ fontSize: 18, fontWeight: 700, color: FG }}>{addon.title}</p>
-                                <span style={{ fontSize: 10, fontWeight: 700, color: pricingType === "Group" ? "#d14343" : A, background: pricingType === "Group" ? "#d1434322" : AL, padding: "2px 8px", borderRadius: 4, textTransform: "uppercase" }}>{pricingType}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, minWidth: 0 }}>
+                                <p style={{ fontSize: 18, fontWeight: 700, color: FG, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{addon.title}</p>
+                                <div style={{ display: "flex", alignItems: "center" }}>
+                                  <span style={{ fontSize: 10, fontWeight: 800, color: pricingType === "Group" ? "#d14343" : A, background: pricingType === "Group" ? "#d1434322" : AL, padding: "2px 8px", borderRadius: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>{pricingType}</span>
+                                </div>
                               </div>
-                              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, marginLeft: 16 }}>
                                 {isSelected ? (
                                   pricingType === "Group" ? (
                                     <button
@@ -760,25 +762,29 @@ const ExperienceProduct = () => {
                                         color: A,
                                         border: `1px solid ${A}`,
                                         borderRadius: 100,
-                                        padding: "6px 20px",
+                                        padding: "0 20px",
+                                        height: "36px",
                                         fontSize: 11,
                                         fontWeight: 700,
                                         cursor: "pointer",
                                         textTransform: "uppercase",
-                                        letterSpacing: "0.05em"
+                                        letterSpacing: "0.05em",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center"
                                       }}
                                     >
                                       Remove
                                     </button>
                                   ) : (
-                                    <div style={{ display: "flex", alignItems: "center", gap: 16, background: S, borderRadius: 100, padding: "4px 8px", border: `1px solid ${B}` }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 16, background: S, borderRadius: 100, padding: "0 8px", height: "36px", border: `1px solid ${B}` }}>
                                       <button
                                         onClick={() => handleUpdateAddonQuantity(addon, -1)}
                                         style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 4, color: A }}
                                       >
                                         <Minus size={14} />
                                       </button>
-                                      <span style={{ fontSize: 13, fontWeight: 700, color: FG, minWidth: 20, textAlign: "center" }}>
+                                      <span style={{ fontSize: 13, fontWeight: 700, color: FG, minWidth: 24, textAlign: "center" }}>
                                         {selectedAddOns.find(a => (a.addonId || a.id) === addonId)?.quantity || 1}
                                       </span>
                                       <button
@@ -797,12 +803,16 @@ const ExperienceProduct = () => {
                                       color: FG,
                                       border: `1px solid ${B}`,
                                       borderRadius: 100,
-                                      padding: "6px 20px",
+                                      padding: "0 20px",
+                                      height: "36px",
                                       fontSize: 11,
                                       fontWeight: 700,
                                       cursor: "pointer",
                                       textTransform: "uppercase",
-                                      letterSpacing: "0.05em"
+                                      letterSpacing: "0.05em",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center"
                                     }}
                                   >
                                     Add
@@ -810,9 +820,9 @@ const ExperienceProduct = () => {
                                 )}
                               </div>
                             </div>
-                            <p style={{ fontSize: 14, color: M, lineHeight: 1.6 }}>{addon.briefDescription || addon.description}</p>
+                            <p style={{ fontSize: 14, color: M, lineHeight: 1.6, marginBottom: 8 }}>{addon.briefDescription || addon.description}</p>
                             {addon.price > 0 && (
-                              <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
+                              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                                 <p style={{ fontSize: 13, fontWeight: 700, color: A }}>+ ₹{addon.price}</p>
                                 {isSelected && (selectedAddOns.find(a => (a.addonId || a.id) === addonId)?.quantity || 1) > 1 && (
                                   <p style={{ fontSize: 12, fontWeight: 500, color: M }}>
