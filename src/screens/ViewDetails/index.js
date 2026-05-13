@@ -223,27 +223,99 @@ const transformBookingData = (apiBooking, listingData = null, eventData = null, 
   // If the backend says Upcoming (PENDING/CONFIRMED) but the booking date and time have
   // already passed, show the booking in Completed instead for consistency with Bookings list.
   if (status === "Pending" || status === "Confirmed") {
-    const bookingDateStr =
-      apiBooking.checkOutDate ||
-      apiBooking.checkInDate ||
-      apiBooking.bookingDate ||
-      apiBooking.eventDate ||
-      apiBooking.eventDetails?.eventDate ||
-      null;
+    const now = new Date();
+    const isStayOrder = 
+      apiBooking?.businessInterestCode === "STAYS" || 
+      apiBooking?.businessInterestCode === "STAY" || 
+      apiBooking?.stayId != null || 
+      (Array.isArray(apiBooking?.stayOrderRooms) && apiBooking.stayOrderRooms.length > 0) || 
+      apiBooking?.stay_id != null || 
+      stayData != null;
 
-    if (bookingDateStr) {
-      const deadline = new Date(bookingDateStr);
-      const endTimeStr = apiBooking.timeSlotEndTime || apiBooking.checkOutTime || apiBooking.endTime || apiBooking.bookingTime;
+    if (isStayOrder) {
+      const checkInDateStr = 
+        apiBooking?.checkInDate || 
+        apiBooking?.check_in_date || 
+        apiBooking?.stayOrderRooms?.[0]?.checkInDate || 
+        apiBooking?.stayOrderRooms?.[0]?.check_in_date || 
+        apiBooking?.bookingDate || 
+        null;
 
-      if (endTimeStr && typeof endTimeStr === 'string' && endTimeStr.includes(':')) {
-        const parts = endTimeStr.split(':').map(Number);
-        deadline.setHours(parts[0] || 0, parts[1] || 0, parts[2] || 0, 0);
+      const checkOutDateStr = 
+        apiBooking?.checkOutDate || 
+        apiBooking?.check_out_date || 
+        apiBooking?.stayOrderRooms?.[0]?.checkOutDate || 
+        apiBooking?.stayOrderRooms?.[0]?.check_out_date || 
+        null;
+
+      if (checkInDateStr && checkOutDateStr) {
+        const checkInTimeStr = 
+          apiBooking?.checkInTime || 
+          apiBooking?.check_in_time || 
+          apiBooking?.stayOrderRooms?.[0]?.checkInTime || 
+          apiBooking?.stayOrderRooms?.[0]?.check_in_time || 
+          apiBooking?.bookingTime;
+
+        const checkOutTimeStr = 
+          apiBooking?.checkOutTime || 
+          apiBooking?.check_out_time || 
+          apiBooking?.stayOrderRooms?.[0]?.checkOutTime || 
+          apiBooking?.stayOrderRooms?.[0]?.check_out_time;
+
+        const checkInDateTime = new Date(checkInDateStr);
+        if (checkInTimeStr && typeof checkInTimeStr === 'string' && checkInTimeStr.includes(':')) {
+          const [h, m, s] = checkInTimeStr.split(':').map(Number);
+          checkInDateTime.setHours(h || 0, m || 0, s || 0, 0);
+        } else {
+          checkInDateTime.setHours(12, 0, 0, 0);
+        }
+
+        const checkOutDateTime = new Date(checkOutDateStr);
+        if (checkOutTimeStr && typeof checkOutTimeStr === 'string' && checkOutTimeStr.includes(':')) {
+          const [h, m, s] = checkOutTimeStr.split(':').map(Number);
+          checkOutDateTime.setHours(h || 0, m || 0, s || 0, 0);
+        } else {
+          checkOutDateTime.setHours(11, 0, 0, 0);
+        }
+
+        if (now >= checkInDateTime && now < checkOutDateTime) {
+          status = "Ongoing";
+        } else if (now >= checkOutDateTime) {
+          status = "Completed";
+        }
       } else {
-        deadline.setHours(23, 59, 59, 999);
+        const fallbackDateStr = checkOutDateStr || checkInDateStr || null;
+        if (fallbackDateStr) {
+          const deadline = new Date(fallbackDateStr);
+          deadline.setHours(23, 59, 59, 999);
+          if (deadline < now) {
+            status = "Completed";
+          }
+        }
       }
+    } else {
+      const bookingDateStr =
+        apiBooking.checkOutDate ||
+        apiBooking.checkInDate ||
+        apiBooking.bookingDate ||
+        apiBooking.eventDate ||
+        apiBooking.eventDetails?.eventDate ||
+        null;
 
-      if (deadline < new Date()) {
-        status = "Completed";
+      if (bookingDateStr) {
+        const deadline = new Date(bookingDateStr);
+        const endTimeStr = apiBooking.timeSlotEndTime || apiBooking.checkOutTime || apiBooking.endTime || apiBooking.bookingTime;
+
+        if (endTimeStr && typeof endTimeStr === 'string' && endTimeStr.includes(':')) {
+          const parts = endTimeStr.split(':').map(Number);
+          deadline.setHours(parts[0] || 0, parts[1] || 0, parts[2] || 0, 0);
+        } else {
+          deadline.setHours(23, 59, 59, 999);
+        }
+
+        if (deadline < now) {
+          status = "Completed";
+        }
       }
     }
   }
@@ -1431,7 +1503,7 @@ const ViewDetails = () => {
     if (statusLower === "pending") {
       return styles.statusPending; // Orange background for pending
     }
-    if (statusLower === "confirmed") {
+    if (statusLower === "confirmed" || statusLower === "ongoing") {
       return styles.statusConfirmed;
     }
     if (statusLower === "upcoming") {
@@ -1604,6 +1676,11 @@ const ViewDetails = () => {
               <div className={styles.summaryValue}>
                 <span className={cn(styles.statusBadge, getStatusClass(booking.status || booking.statusTone || booking.originalData?.orderStatus))}>
                   {(() => {
+                    // Prioritize date-overridden booking.status (Ongoing / Completed) for visual accuracy
+                    if (booking.status === "Ongoing" || booking.status === "Completed") {
+                      return booking.status;
+                    }
+
                     // Get status from original orderStatus first, then fallback to mapped status
                     const originalStatus = booking.originalData?.orderStatus;
                     if (originalStatus) {

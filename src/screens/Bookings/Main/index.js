@@ -251,32 +251,105 @@ const transformBookingData = (apiBooking, listingData = null, eventData = null, 
   // Override status based on date to ensure correct tab categorization (Upcoming vs Completed).
   // This ensures stays and experiences only move to Completed after their end date has passed.
   if (status === "Upcoming" || status === "Completed") {
-    const bookingDateStr =
-      apiBooking.checkOutDate ||
-      apiBooking.checkInDate ||
-      apiBooking.bookingDate ||
-      apiBooking.eventDate ||
-      apiBooking.eventDetails?.eventDate ||
-      null;
+    const now = new Date();
+    const isStayOrder = 
+      apiBooking?.businessInterestCode === "STAYS" || 
+      apiBooking?.businessInterestCode === "STAY" || 
+      apiBooking?.stayId != null || 
+      (Array.isArray(apiBooking?.stayOrderRooms) && apiBooking.stayOrderRooms.length > 0) || 
+      apiBooking?.stay_id != null || 
+      stayData != null;
 
-    if (bookingDateStr) {
-      // Compare against end-of-experience time if available, otherwise end-of-day
-      const deadline = new Date(bookingDateStr);
-      
-      const endTimeStr = apiBooking.timeSlotEndTime || apiBooking.checkOutTime || apiBooking.endTime || apiBooking.bookingTime;
-      
-      if (endTimeStr && typeof endTimeStr === 'string' && endTimeStr.includes(':')) {
-        const [hours, minutes, seconds] = endTimeStr.split(':').map(Number);
-        deadline.setHours(hours || 0, minutes || 0, seconds || 0, 0);
+    if (isStayOrder) {
+      const checkInDateStr = 
+        apiBooking?.checkInDate || 
+        apiBooking?.check_in_date || 
+        apiBooking?.stayOrderRooms?.[0]?.checkInDate || 
+        apiBooking?.stayOrderRooms?.[0]?.check_in_date || 
+        apiBooking?.bookingDate || 
+        null;
+
+      const checkOutDateStr = 
+        apiBooking?.checkOutDate || 
+        apiBooking?.check_out_date || 
+        apiBooking?.stayOrderRooms?.[0]?.checkOutDate || 
+        apiBooking?.stayOrderRooms?.[0]?.check_out_date || 
+        null;
+
+      if (checkInDateStr && checkOutDateStr) {
+        const checkInTimeStr = 
+          apiBooking?.checkInTime || 
+          apiBooking?.check_in_time || 
+          apiBooking?.stayOrderRooms?.[0]?.checkInTime || 
+          apiBooking?.stayOrderRooms?.[0]?.check_in_time || 
+          apiBooking?.bookingTime;
+
+        const checkOutTimeStr = 
+          apiBooking?.checkOutTime || 
+          apiBooking?.check_out_time || 
+          apiBooking?.stayOrderRooms?.[0]?.checkOutTime || 
+          apiBooking?.stayOrderRooms?.[0]?.check_out_time;
+
+        const checkInDateTime = new Date(checkInDateStr);
+        if (checkInTimeStr && typeof checkInTimeStr === 'string' && checkInTimeStr.includes(':')) {
+          const [h, m, s] = checkInTimeStr.split(':').map(Number);
+          checkInDateTime.setHours(h || 0, m || 0, s || 0, 0);
+        } else {
+          checkInDateTime.setHours(12, 0, 0, 0);
+        }
+
+        const checkOutDateTime = new Date(checkOutDateStr);
+        if (checkOutTimeStr && typeof checkOutTimeStr === 'string' && checkOutTimeStr.includes(':')) {
+          const [h, m, s] = checkOutTimeStr.split(':').map(Number);
+          checkOutDateTime.setHours(h || 0, m || 0, s || 0, 0);
+        } else {
+          checkOutDateTime.setHours(11, 0, 0, 0);
+        }
+
+        if (now < checkInDateTime) {
+          status = "Upcoming";
+        } else if (now >= checkInDateTime && now < checkOutDateTime) {
+          status = "Ongoing";
+        } else {
+          status = "Completed";
+        }
       } else {
-        // Fallback to end-of-day if no specific time is provided
-        deadline.setHours(23, 59, 59, 999);
+        // Fallback if checkOutDate is completely missing for some reason
+        const fallbackDateStr = checkOutDateStr || checkInDateStr || null;
+        if (fallbackDateStr) {
+          const deadline = new Date(fallbackDateStr);
+          deadline.setHours(23, 59, 59, 999);
+          status = deadline < now ? "Completed" : "Upcoming";
+        }
       }
+    } else {
+      const bookingDateStr =
+        apiBooking.checkOutDate ||
+        apiBooking.checkInDate ||
+        apiBooking.bookingDate ||
+        apiBooking.eventDate ||
+        apiBooking.eventDetails?.eventDate ||
+        null;
 
-      if (deadline < new Date()) {
-        status = "Completed";
-      } else {
-        status = "Upcoming";
+      if (bookingDateStr) {
+        // Compare against end-of-experience time if available, otherwise end-of-day
+        const deadline = new Date(bookingDateStr);
+        
+        const endTimeStr = apiBooking.timeSlotEndTime || apiBooking.checkOutTime || apiBooking.endTime || apiBooking.bookingTime;
+        
+        if (endTimeStr && typeof endTimeStr === 'string' && endTimeStr.includes(':')) {
+          const [hours, minutes, seconds] = endTimeStr.split(':').map(Number);
+          deadline.setHours(hours || 0, minutes || 0, seconds || 0, 0);
+        } else {
+          // Fallback to end-of-day if no specific time is provided
+          deadline.setHours(23, 59, 59, 999);
+        }
+
+        if (deadline < now) {
+          status = "Completed";
+        } else {
+          status = "Upcoming";
+        }
       }
     }
   }
@@ -511,6 +584,9 @@ const actionsByStatus = {
     { label: "View Details", variant: "primary" },
     { label: "Cancel Booking", variant: "secondary" },
   ],
+  Ongoing: [
+    { label: "View Details", variant: "primary" },
+  ],
   Completed: [
     { label: "View Details", variant: "primary" },
     { label: "Leave review", variant: "secondary" },
@@ -647,7 +723,7 @@ const Main = ({
   const countsByTab = useMemo(() => {
     // Count upcoming, completed (date-overridden), and cancelled from regular bookings
     const categorized = transformedBookings.reduce((acc, booking) => {
-      const tabId = booking.statusTone === "upcoming" ? "upcoming"
+      const tabId = (booking.statusTone === "upcoming" || booking.statusTone === "ongoing") ? "upcoming"
         : booking.statusTone === "completed" ? "completed"
         : "cancelled";
       acc[tabId] = (acc[tabId] || 0) + 1;
@@ -679,7 +755,7 @@ const Main = ({
     } else {
       // For upcoming and cancelled tabs, exclude date-overridden completed bookings
       result = transformedBookings.filter((booking) => {
-        const tabId = booking.statusTone === "upcoming" ? "upcoming"
+        const tabId = (booking.statusTone === "upcoming" || booking.statusTone === "ongoing") ? "upcoming"
           : booking.statusTone === "completed" ? null  // exclude — goes to completed tab
           : "cancelled";
         return tabId === displayedTab;
