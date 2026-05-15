@@ -989,7 +989,7 @@ function EventInlineCalendar({ selectedDate, onDateSelect, availableDateKeys, to
   );
 }
 
-export function BookingSystem({ listing, type = "experience", selectedAddOns = [], triggerLabel = "Reserve Now", reserveLabel = "Reserve Experience" }) {
+export function BookingSystem({ listing, type = "experience", selectedAddOns = [], triggerLabel = "Reserve Now", reserveLabel = "Reserve Experience", onUpdateAddonQuantity }) {
   const history = useHistory();
   const { tokens: { A, AH, BG, FG, M, S, B, AL, W, E, EL } } = useTheme();
   const isMountedRef = useRef(true);
@@ -2348,6 +2348,91 @@ export function BookingSystem({ listing, type = "experience", selectedAddOns = [
 
                 {/* Right Column: Slots & Guests */}
                 <div className="booking-modal-column" style={{ padding: "14px 20px", background: S, display: "flex", flexDirection: "column", gap: 8 }}>
+
+                  {/* Add-ons Section */}
+                  {(listing?.addons || []).length > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={{ fontSize: 10, color: A, fontWeight: 800, textTransform: "uppercase", marginBottom: 8, letterSpacing: "0.1em" }}>
+                        Add-ons
+                      </div>
+                      <div className="booking-addons-scroll" style={{
+                        display: "flex",
+                        overflowX: "auto",
+                        gap: 10,
+                        paddingBottom: 4,
+                        margin: "0 -20px",
+                        padding: "0 20px 8px",
+                        WebkitOverflowScrolling: "touch",
+                        scrollbarWidth: "none",
+                        msOverflowStyle: "none"
+                      }}>
+                        <style>{`.booking-addons-scroll::-webkit-scrollbar { display: none; }`}</style>
+                        {listing.addons.map((item, i) => {
+                          const addon = item.addon || item;
+                          const addonId = addon.addonId || addon.id;
+                          const pricingType = addon.pricingType || (addon.priceType === "per_booking" ? "Group" : "Individual");
+                          const isSelected = selectedAddOns.some(a => (a.addonId || a.id) === addonId);
+                          const quantity = selectedAddOns.find(a => (a.addonId || a.id) === addonId)?.quantity || 1;
+                          const addonImage = addon.imageUrl || (addon.imageUrls && addon.imageUrls[0]) || addon.image;
+                          
+                          return (
+                            <div key={i} style={{
+                              flexShrink: 0,
+                              width: 170,
+                              background: isSelected ? AL : BG,
+                              border: `1.5px solid ${isSelected ? A : B}`,
+                              borderRadius: 16,
+                              padding: 12,
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 8,
+                              transition: "0.2s",
+                              position: "relative",
+                              cursor: "default"
+                            }}>
+                              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                                {addonImage && (
+                                  <div style={{ width: 36, height: 36, borderRadius: 10, overflow: "hidden", flexShrink: 0, border: `1px solid ${B}` }}>
+                                    <img src={addonImage} alt={addon.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                  </div>
+                                )}
+                                <p style={{ fontSize: 12, fontWeight: 700, color: isSelected ? A : FG, lineHeight: 1.2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{addon.title}</p>
+                              </div>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", paddingTop: 4 }}>
+                                <span style={{ fontSize: 12, fontWeight: 800, color: M }}>
+                                  {addon.price > 0 ? `₹${addon.price}` : "Free"}
+                                </span>
+                                {isSelected ? (
+                                  pricingType === "Group" ? (
+                                    <button
+                                      onClick={() => onUpdateAddonQuantity && onUpdateAddonQuantity(addon, -1)}
+                                      style={{ background: A, color: "#fff", border: "none", borderRadius: 100, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: onUpdateAddonQuantity ? "pointer" : "default" }}
+                                    >
+                                      <CheckCircle2 size={16} />
+                                    </button>
+                                  ) : (
+                                    <div style={{ display: "flex", alignItems: "center", gap: 4, background: BG, borderRadius: 100, border: `1px solid ${A}44`, padding: "2px 4px" }}>
+                                      <button onClick={() => onUpdateAddonQuantity && onUpdateAddonQuantity(addon, -1)} style={{ background: "none", border: "none", padding: 2, cursor: onUpdateAddonQuantity ? "pointer" : "default", color: A }}><Minus size={14} /></button>
+                                      <span style={{ fontSize: 12, fontWeight: 700, minWidth: 14, textAlign: "center", color: A }}>{quantity}</span>
+                                      <button onClick={() => onUpdateAddonQuantity && onUpdateAddonQuantity(addon, 1)} style={{ background: "none", border: "none", padding: 2, cursor: onUpdateAddonQuantity ? "pointer" : "default", color: A }}><Plus size={14} /></button>
+                                    </div>
+                                  )
+                                ) : (
+                                  <button
+                                    onClick={() => onUpdateAddonQuantity && onUpdateAddonQuantity(addon, 1)}
+                                    style={{ background: S, color: FG, border: `1px solid ${B}`, borderRadius: 100, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: onUpdateAddonQuantity ? "pointer" : "default" }}
+                                  >
+                                    <Plus size={16} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <div style={{ fontSize: 10, color: validationErrors.slot ? E : A, fontWeight: 800, textTransform: "uppercase", marginBottom: 6, letterSpacing: "0.1em", display: "flex", alignItems: "center", gap: 8 }}>
                       02. {isEventBooking ? "Choose Slot" : "Select Time"}
