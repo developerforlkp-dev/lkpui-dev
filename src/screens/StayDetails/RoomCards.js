@@ -47,6 +47,21 @@ const formatPrice = (raw) => {
   return n.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
 
+const getBillingConfigDiscountRate = (listing) => {
+  const discounts =
+    listing?.billingConfig?.discounts ||
+    listing?.billing_config?.discounts ||
+    [];
+  if (!Array.isArray(discounts) || discounts.length === 0) return 0;
+
+  const totalRate = discounts.reduce((sum, discount) => {
+    const rate = Number(discount?.currentRate ?? discount?.current_rate ?? 0);
+    return sum + (Number.isFinite(rate) ? rate : 0);
+  }, 0);
+
+  return Math.max(0, Math.min(100, totalRate));
+};
+
 const fixImageUrl = (url) => {
   if (!url) return "";
   const u = typeof url === 'string' ? url : (url.url || url.src || url.mediaUrl || url.coverImageUrl || url.coverPhotoUrl || "");
@@ -486,7 +501,10 @@ const RoomCard = ({ room, listing, onRoomSelect, isSelected, roomsCount, onRooms
 
   const [plan, setPlan] = useState(allPlans[0] || null);
   const rawPrice = plan ? getPriceForPlan(room, plan) : room.b2cPrice || room.price;
+  const discountRate = getBillingConfigDiscountRate(listing);
+  const discountedRawPrice = rawPrice != null ? Math.max(0, Number(rawPrice) * (1 - discountRate / 100)) : null;
   const displayPrice = formatPrice(rawPrice);
+  const discountedDisplayPrice = formatPrice(discountedRawPrice);
 
   const name = room.roomName || room.roomTypeName || room.name || "Room";
   const capacity = room.maxGuests || (room.maxAdults ? room.maxAdults + (room.maxChildren || 0) : null);
@@ -528,7 +546,17 @@ const RoomCard = ({ room, listing, onRoomSelect, isSelected, roomsCount, onRooms
             <span className={styles.priceLabel}>STARTING FROM</span>
             <div className={styles.amount}>
               {displayPrice
-                ? <>₹{displayPrice}<span className={styles.perNight}> / night</span></>
+                ? (
+                  <>
+                    {discountRate > 0 && discountedDisplayPrice && (
+                      <span style={{ fontSize: 16, color: "#8b94aa", textDecoration: "line-through", marginRight: 8 }}>
+                        {"\u20B9"}{displayPrice}
+                      </span>
+                    )}
+                    {"\u20B9"}{discountRate > 0 && discountedDisplayPrice ? discountedDisplayPrice : displayPrice}
+                    <span className={styles.perNight}> / night</span>
+                  </>
+                )
                 : <span className={styles.priceOnRequest}>Price on request</span>
               }
             </div>
