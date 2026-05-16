@@ -568,8 +568,17 @@ function PolicyItem({ rule, A, FG, M, B, S }) {
 }
 
 function StayPoliciesAndContact({ stay, hostData, hostAvatar }) {
+  const history = useHistory();
   const { isMobile } = useWindowSize();
   const { tokens: { A, AL, BG, FG, M, S, B, W } } = useTheme();
+  const hostProfileId =
+    hostData?.host?.hostId ||
+    hostData?.hostId ||
+    stay?.hostId ||
+    stay?.host?.hostId ||
+    stay?.leadUserId ||
+    stay?.userId ||
+    null;
   const policies = useMemo(() => {
     const categories = [];
 
@@ -724,7 +733,23 @@ function StayPoliciesAndContact({ stay, hostData, hostAvatar }) {
                     )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 className="font-display" style={{ fontSize: isMobile ? 24 : 32, fontWeight: 700, color: FG, marginBottom: 4, wordBreak: "break-word", lineHeight: 1.2 }}>{primaryName}</h3>
+                    <h3
+                      className="font-display"
+                      onClick={() => {
+                        if (hostProfileId) history.push(`/host-profile?id=${hostProfileId}`);
+                      }}
+                      style={{
+                        fontSize: isMobile ? 24 : 32,
+                        fontWeight: 700,
+                        color: FG,
+                        marginBottom: 4,
+                        wordBreak: "break-word",
+                        lineHeight: 1.2,
+                        cursor: hostProfileId ? "pointer" : "default",
+                      }}
+                    >
+                      {primaryName}
+                    </h3>
                     <p style={{ fontSize: 14, color: M }}>Property Representative</p>
                   </div>
                 </div>
