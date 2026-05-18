@@ -196,7 +196,7 @@ const StayBookingSystem = ({
   const [validationError, setValidationError] = useState("");
   const [selectionMode, setSelectionMode] = useState("check-in");
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  const [bookingErrorPopup, setBookingErrorPopup] = useState({ visible: false, title: "", message: "" });
+  const [bookingErrorPopup, setBookingErrorPopup] = useState({ visible: false, title: "", message: "", isSameDay: false });
 
   // Automatically reopen the modal if state was hydrated after auth redirect
   useEffect(() => {
@@ -1039,10 +1039,24 @@ const StayBookingSystem = ({
           : null) ||
         "Please try different dates or room selections.";
 
+      let finalTitle = String(title);
+      let finalMessage = String(detailMessage);
+      let isSameDay = false;
+
+      if (
+        finalTitle.toLowerCase().includes("same-day") ||
+        finalMessage.toLowerCase().includes("same-day")
+      ) {
+        finalTitle = "We’re Sorry — Today’s Check-In Window Has Closed";
+        finalMessage = "The check-in window for today has already closed. Please try selecting a future date for your stay.";
+        isSameDay = true;
+      }
+
       setBookingErrorPopup({
         visible: true,
-        title: String(title),
-        message: String(detailMessage),
+        title: finalTitle,
+        message: finalMessage,
+        isSameDay,
       });
     } finally {
       setLoading(false);
@@ -1493,7 +1507,7 @@ const StayBookingSystem = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setBookingErrorPopup({ visible: false, title: "", message: "" })}
+              onClick={() => setBookingErrorPopup({ visible: false, title: "", message: "", isSameDay: false })}
               style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
             />
             <motion.div
@@ -1506,41 +1520,79 @@ const StayBookingSystem = ({
                 maxWidth: 520,
                 background: BG,
                 color: FG,
-                borderRadius: 22,
-                border: `1px solid ${E}44`,
-                boxShadow: "0 24px 64px rgba(0,0,0,0.35)",
-                padding: "22px 22px 18px",
-                zIndex: 1
+                borderRadius: bookingErrorPopup.isSameDay ? 28 : 22,
+                border: bookingErrorPopup.isSameDay ? `1px solid ${A}44` : `1px solid ${E}44`,
+                boxShadow: bookingErrorPopup.isSameDay 
+                  ? `0 30px 70px rgba(0,0,0,0.35), 0 0 50px ${A}15` 
+                  : "0 24px 64px rgba(0,0,0,0.35)",
+                padding: bookingErrorPopup.isSameDay ? "32px 32px 24px" : "22px 22px 18px",
+                zIndex: 1,
+                overflow: "hidden"
               }}
             >
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 10, background: EL, border: `1px solid ${E}33`, display: "flex", alignItems: "center", justifyContent: "center", color: E, flexShrink: 0 }}>
-                  <AlertCircle size={18} />
+              {bookingErrorPopup.isSameDay && (
+                <div style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 4,
+                  background: `linear-gradient(90deg, ${A}, ${AL || '#A0AEC0'})`
+                }} />
+              )}
+              <div style={{ display: "flex", alignItems: "flex-start", gap: bookingErrorPopup.isSameDay ? 18 : 12 }}>
+                <div style={{ 
+                  width: bookingErrorPopup.isSameDay ? 46 : 34, 
+                  height: bookingErrorPopup.isSameDay ? 46 : 34, 
+                  borderRadius: bookingErrorPopup.isSameDay ? 14 : 10, 
+                  background: bookingErrorPopup.isSameDay ? AL : EL, 
+                  border: bookingErrorPopup.isSameDay ? `1px solid ${A}33` : `1px solid ${E}33`, 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center", 
+                  color: bookingErrorPopup.isSameDay ? A : E, 
+                  flexShrink: 0 
+                }}>
+                  {bookingErrorPopup.isSameDay ? <Calendar size={22} /> : <AlertCircle size={18} />}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: FG }}>{bookingErrorPopup.title}</h3>
-                  <p style={{ margin: "8px 0 0", fontSize: 13, lineHeight: 1.6, color: M }}>{bookingErrorPopup.message}</p>
+                  <h3 style={{ 
+                    margin: 0, 
+                    fontSize: bookingErrorPopup.isSameDay ? 19 : 17, 
+                    fontWeight: 800, 
+                    color: FG,
+                    lineHeight: 1.3
+                  }}>{bookingErrorPopup.title}</h3>
+                  <p style={{ 
+                    margin: "10px 0 0", 
+                    fontSize: bookingErrorPopup.isSameDay ? 14 : 13, 
+                    lineHeight: 1.6, 
+                    color: M 
+                  }}>{bookingErrorPopup.message}</p>
                 </div>
               </div>
-              <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
-                <button
+              <div style={{ marginTop: bookingErrorPopup.isSameDay ? 24 : 16, display: "flex", justifyContent: "flex-end" }}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   type="button"
-                  onClick={() => setBookingErrorPopup({ visible: false, title: "", message: "" })}
+                  onClick={() => setBookingErrorPopup({ visible: false, title: "", message: "", isSameDay: false })}
                   style={{
                     background: A,
                     color: "#FFF",
                     border: "none",
-                    borderRadius: 10,
-                    padding: "10px 18px",
-                    fontSize: 12,
+                    borderRadius: bookingErrorPopup.isSameDay ? 12 : 10,
+                    padding: bookingErrorPopup.isSameDay ? "12px 28px" : "10px 18px",
+                    fontSize: bookingErrorPopup.isSameDay ? 13 : 12,
                     fontWeight: 800,
                     cursor: "pointer",
                     letterSpacing: "0.04em",
-                    textTransform: "uppercase"
+                    textTransform: "uppercase",
+                    boxShadow: bookingErrorPopup.isSameDay ? `0 8px 16px ${A}22` : "none"
                   }}
                 >
                   Okay
-                </button>
+                </motion.button>
               </div>
             </motion.div>
           </div>
