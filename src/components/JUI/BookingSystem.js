@@ -2142,8 +2142,12 @@ export function BookingSystem({ listing, type = "experience", selectedAddOns = [
         onClick={handleOpenBooking}
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        whileHover={triggerDisabled ? undefined : { scale: 1.05 }}
-        whileTap={triggerDisabled ? undefined : { scale: 0.95 }}
+        whileHover={triggerDisabled ? undefined : {
+          scale: 1.04,
+          background: AH || A,
+          boxShadow: `0 20px 35px -8px rgba(0,0,0,0.15), 0 30px 60px -10px ${A}55, 0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.35)`
+        }}
+        whileTap={triggerDisabled ? undefined : { scale: 0.96 }}
         disabled={triggerDisabled}
         title={triggerDisabled ? ticketSaleWindow.message : undefined}
         className="booking-trigger"
@@ -2153,21 +2157,25 @@ export function BookingSystem({ listing, type = "experience", selectedAddOns = [
           right: 30,
           background: A,
           color: "#FFF",
-          padding: "12px 24px",
+          padding: "18px 42px",
           borderRadius: 100,
           display: "flex",
           alignItems: "center",
-          gap: 10,
-          boxShadow: "0 15px 35px rgba(0,0,0,0.2)",
+          justifyContent: "center",
+          gap: 12,
+          boxShadow: `0 12px 24px -6px rgba(0,0,0,0.12), 0 20px 40px -8px ${A}3b, 0 1px 3px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.25)`,
           border: "none",
           cursor: triggerDisabled ? "not-allowed" : "pointer",
           zIndex: 1000,
-          fontWeight: 600,
-          fontSize: 14,
-          opacity: triggerDisabled ? 0.76 : 1
+          fontWeight: 800,
+          fontSize: 17,
+          letterSpacing: "0.05em",
+          textTransform: "uppercase",
+          opacity: triggerDisabled ? 0.76 : 1,
+          transition: "background-color 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1), transform 0.2s cubic-bezier(0.25, 1, 0.5, 1)"
         }}
       >
-        <IconComp size={18} />
+        <IconComp size={22} />
         {triggerDisabled ? (ticketSaleWindow.status === "upcoming" ? "Booking Not Open" : "Booking Closed") : triggerLabel}
       </motion.button>
       {triggerDisabled && (
@@ -3098,9 +3106,12 @@ export function BookingSystem({ listing, type = "experience", selectedAddOns = [
             left: 20px !important;
             width: calc(100% - 40px) !important;
             justify-content: center !important;
-            padding: 16px !important;
+            padding: 16px 32px !important;
             font-size: 16px !important;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3) !important;
+            font-weight: 800 !important;
+            letter-spacing: 0.05em !important;
+            text-transform: uppercase !important;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3) !important;
           }
           
           .booking-trigger-message {
@@ -3108,6 +3119,15 @@ export function BookingSystem({ listing, type = "experience", selectedAddOns = [
             right: 20px !important;
             left: 20px !important;
             max-width: none !important;
+          }
+        }
+
+        @media (min-width: 768px) and (max-width: 1024px) {
+          .booking-trigger {
+            bottom: 30px !important;
+            right: 30px !important;
+            padding: 16px 36px !important;
+            font-size: 16px !important;
           }
         }
       `}</style>
