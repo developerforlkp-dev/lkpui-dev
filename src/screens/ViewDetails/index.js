@@ -630,6 +630,9 @@ const ViewDetails = () => {
   const params = new URLSearchParams(location.search);
   const bookingId = params.get("id") || "bk-up-001";
   const bookingType = params.get("type"); // "event" for event orders
+  const sourceTab = String(params.get("sourceTab") || "").toLowerCase();
+  const openedFromUpcoming = sourceTab === "upcoming";
+  const openedFromCancelled = sourceTab === "cancelled" || sourceTab === "canceled";
 
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1650,17 +1653,21 @@ const ViewDetails = () => {
           onClick: handleCheckAvailabilityAndProceed,
           disabled: isCheckingAvailability || isConfirmingBooking,
         },
-        { label: "Cancel Booking", variant: "secondary", onClick: handleCancelBookingClick },
       ];
+      if (!openedFromCancelled) {
+        actions.push({ label: "Cancel Booking", variant: "secondary", onClick: handleCancelBookingClick });
+      }
       return actions;
     }
 
     if (status === "upcoming" || status === "confirmed") {
       const actions = [
         { label: "Download Receipt", variant: "primary", onClick: handleDownloadReceiptClick },
-        { label: "Cancel Booking", variant: "secondary", onClick: handleCancelBookingClick },
       ];
-      if (canLeaveReview) {
+      if (!openedFromCancelled) {
+        actions.push({ label: "Cancel Booking", variant: "secondary", onClick: handleCancelBookingClick });
+      }
+      if (canLeaveReview && !openedFromUpcoming) {
         actions.push({
           label: "Leave Review",
           variant: "secondary",
@@ -1677,7 +1684,7 @@ const ViewDetails = () => {
       const actions = [
         { label: "Download Receipt", variant: "primary", onClick: handleDownloadReceiptClick },
       ];
-      if (canLeaveReview) {
+      if (canLeaveReview && !openedFromUpcoming) {
         actions.push({
           label: "Leave Review",
           variant: "secondary",
