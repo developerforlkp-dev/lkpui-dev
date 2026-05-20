@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet";
-import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion";
+import { ChevronDown, ArrowUp, Maximize2, Minimize2 } from "lucide-react";
 import Page from "../../components/Page";
 import { useTheme } from "../../components/JUI/Theme";
 
@@ -37,33 +37,51 @@ const accordionData = [
 ];
 
 const AccordionItem = ({ item, isOpen, onClick, themeTokens }) => {
-  const { FG, M, B, A } = themeTokens;
+  const { FG, M, B, A, BG } = themeTokens;
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
-    <div style={{ borderBottom: `1px solid ${B}`, overflow: "hidden" }}>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      style={{ 
+        marginBottom: "16px",
+        borderRadius: "12px",
+        border: isOpen ? `1px solid rgba(0, 151, 178, 0.4)` : `1px solid ${B}`,
+        boxShadow: isOpen ? "0 4px 20px rgba(0, 151, 178, 0.08)" : (isHovered ? "0 4px 12px rgba(0,0,0,0.03)" : "none"),
+        overflow: "hidden",
+        background: isOpen ? BG : (isHovered ? "rgba(0,0,0,0.02)" : BG),
+        transition: "all 0.3s ease"
+      }}
+    >
       <button
         onClick={onClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         style={{
           width: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "32px 0",
-          background: "none",
+          padding: "24px 32px",
+          background: "transparent",
           border: "none",
           cursor: "pointer",
           textAlign: "left",
           outline: "none"
         }}
       >
-        <span style={{ fontSize: "clamp(1.1rem, 2vw, 1.5rem)", fontWeight: 500, color: isOpen ? A : FG, transition: "color 0.3s ease" }}>
+        <span style={{ fontSize: "clamp(1.1rem, 2vw, 1.3rem)", fontWeight: isOpen ? 600 : 500, color: isOpen ? A : FG, transition: "color 0.3s ease" }}>
           {item.title}
         </span>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", color: M }}
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", color: isOpen ? A : M }}
         >
-          <ChevronDown size={24} />
+          <ChevronDown size={22} strokeWidth={isOpen ? 2 : 1.5} />
         </motion.div>
       </button>
       <AnimatePresence initial={false}>
@@ -74,19 +92,62 @@ const AccordionItem = ({ item, isOpen, onClick, themeTokens }) => {
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div style={{ paddingBottom: "32px", color: M, fontSize: "1.1rem", lineHeight: 1.8, maxWidth: "800px" }}>
+            <div style={{ padding: "0px 32px 32px 32px", color: M, fontSize: "1.1rem", lineHeight: 1.9 }}>
               {item.content}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 };
 
 const PrivacyPolicy = () => {
-  const { tokens, theme } = useTheme();
-  const [openIndex, setOpenIndex] = useState(0);
+  const { tokens } = useTheme();
+  const [openIndices, setOpenIndices] = useState([0]);
+  const [showTopBtn, setShowTopBtn] = useState(false);
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const handleScroll = () => {
+      if (window.scrollY > 400) {
+        setShowTopBtn(true);
+      } else {
+        setShowTopBtn(false);
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const goToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
+  const toggleAccordion = (index) => {
+    if (openIndices.includes(index)) {
+      setOpenIndices(openIndices.filter(i => i !== index));
+    } else {
+      setOpenIndices([...openIndices, index]);
+    }
+  };
+
+  const expandAll = () => {
+    setOpenIndices(accordionData.map((_, i) => i));
+  };
+
+  const collapseAll = () => {
+    setOpenIndices([]);
+  };
 
   return (
     <Page>
@@ -95,16 +156,37 @@ const PrivacyPolicy = () => {
         <meta name="description" content="Review the Privacy Policy for using Little Known Planet services." />
       </Helmet>
       
-      <div style={{ background: tokens.BG, minHeight: "100vh", paddingTop: "140px", paddingBottom: "100px", color: tokens.FG }}>
-        <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "0 24px" }}>
+      {/* Top Progress Bar */}
+      <motion.div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: "4px",
+          background: tokens.A,
+          transformOrigin: "0%",
+          scaleX,
+          zIndex: 9999
+        }}
+      />
+
+      <div style={{ background: tokens.BG, minHeight: "100vh", paddingTop: "140px", paddingBottom: "120px", color: tokens.FG }}>
+        <div style={{ maxWidth: "860px", margin: "0 auto", padding: "0 24px" }}>
           
-          <div style={{ textAlign: "center", marginBottom: "80px" }}>
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            style={{ textAlign: "center", marginBottom: "60px" }}
+          >
             <h1 className="font-display" style={{ 
-              fontSize: "clamp(3rem, 6vw, 5rem)", 
-              fontWeight: 700, 
-              color: tokens.FG, 
+              fontSize: "clamp(3.5rem, 7vw, 5.5rem)", 
+              fontWeight: 400, 
+              color: tokens.A, 
               letterSpacing: "-0.02em",
-              marginBottom: "24px"
+              marginBottom: "24px",
+              fontFamily: "Georgia, serif"
             }}>
               Privacy Policy
             </h1>
@@ -112,15 +194,16 @@ const PrivacyPolicy = () => {
               How we collect, use, and protect your information.
               Last updated: May 2026.
             </p>
-          </div>
+            
+          </motion.div>
 
-          <div style={{ borderTop: `1px solid ${tokens.B}` }}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
             {accordionData.map((item, index) => (
               <AccordionItem
                 key={index}
                 item={item}
-                isOpen={openIndex === index}
-                onClick={() => setOpenIndex(index === openIndex ? -1 : index)}
+                isOpen={openIndices.includes(index)}
+                onClick={() => toggleAccordion(index)}
                 themeTokens={tokens}
               />
             ))}
@@ -128,6 +211,42 @@ const PrivacyPolicy = () => {
 
         </div>
       </div>
+
+      {/* Floating Back to Top Button */}
+      <AnimatePresence>
+        {showTopBtn && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            onClick={goToTop}
+            style={{
+              position: "fixed",
+              bottom: "40px",
+              right: "40px",
+              width: "50px",
+              height: "50px",
+              borderRadius: "50%",
+              background: "rgba(255, 255, 255, 0.85)",
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+              border: `1px solid rgba(0, 151, 178, 0.2)`,
+              color: tokens.A,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+              zIndex: 1000,
+              transition: "transform 0.2s ease"
+            }}
+            whileHover={{ y: -5, boxShadow: "0 12px 40px rgba(0, 151, 178, 0.15)" }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <ArrowUp size={24} strokeWidth={2} />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </Page>
   );
 };
